@@ -67,7 +67,7 @@ const SuccessPage = () => {
         <span className="text-title">Payment Success</span>
         <span className="max-w-md text-center">
           Congratulations on unlocking the door to your future success! 🌟 Your
-          journey to skill elevation begins now. Let's dive in and shape a
+          journey to skill elevation begins now. Let&apos;s dive in and shape a
           brighter tomorrow together! 🚀
         </span>
 
@@ -87,7 +87,7 @@ const SuccessPage = () => {
             }
             className="bg-primary px-3 py-2 rounded-md text-white text-center text-[16px]"
           >
-            Let's Start ▶
+            Let&apos;s Start ▶
           </Link>
         ) : (
           "Loading..."

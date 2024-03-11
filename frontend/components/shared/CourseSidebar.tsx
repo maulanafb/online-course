@@ -26,6 +26,7 @@ const CourseSidebar = ({ className, chapterData }: any) => {
                   <div className="flex flex-col py-1 gap-3">
                     {chapter.Lessons.map((l: any, index: any) => (
                       <Link
+                        key={l.Title}
                         href={`${l.Content}`}
                         className="flex gap-2 bg-primary w-full rounded-r-xl rounded-l-xl px-3 py-2 text-white "
                       >

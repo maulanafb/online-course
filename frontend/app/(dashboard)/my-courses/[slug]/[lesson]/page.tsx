@@ -4,11 +4,12 @@ import NavbarCourse from "@/components/shared/NavbarCourse";
 import React, { useEffect, useState } from "react";
 import { fetchData } from "./action";
 import { useParams } from "next/navigation";
+
 interface CourseData {
-  // Define the structure of your course data here
   Chapter: any; // Replace 'any' with the actual type
   // ... other properties
 }
+
 const LearnPage = () => {
   const [coursesData, setCoursesData] = useState<CourseData>();
   const params = useParams();
@@ -17,15 +18,15 @@ const LearnPage = () => {
   useEffect(() => {
     const fetchDataAsync = async () => {
       try {
-        const data = await fetchData(params?.slug); // Replace with the actual slug
+        const data = await fetchData(params?.slug);
         setCoursesData(data);
       } catch (error) {
-        console.error("Failed to fetch data:");
+        console.error("Failed to fetch data:", error);
       }
     };
 
     fetchDataAsync();
-  }, []); // Empty dependency array means this effect runs once when the component mounts
+  }, [params?.slug]); // Include params?.slug in the dependency array
 
   console.log(coursesData);
 

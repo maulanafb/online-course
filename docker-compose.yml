@@ -2,27 +2,36 @@ version: "3"
 
 services:
   mysql:
+    container_name: db
     image: mysql:5.7
     restart: always
     environment:
-      MYSQL_ROOT_PASSWORD:
+      MYSQL_ALLOW_EMPTY_PASSWORD: "yes"
     volumes:
       - mysql_data:/var/lib/mysql
     ports:
-      - "3306:3306"
+      - "3307:3306"
+    networks:
+      - e-course-network
 
   backend:
     build: ./backend
     ports:
-      - "8080:8080"
+      - "8088:8080"
     depends_on:
       - mysql
     environment:
-      DB_HOST: mysql
-      DB_PORT: 3306
-      DB_NAME: your_db_name
+      DB_HOST: db
+      DB_PORT: 3306 # Port MySQL di dalam container
+      DB_NAME: be-e-course
       DB_USERNAME: root
-      DB_PASSWORD:
+      DB_PASSWORD: ""
+      MIDTRANS_SERVER_KEY: SB-Mid-server-hbsyRRNd3DukR7s2zf6gbpvZ
+      GOOGLE_CLIENT_ID: 274987599786-gdrcil22l5tqpme91k76etb49nd133og.apps.googleusercontent.com
+      GOOGLE_CLIENT_SECRET: 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
+
+    networks:
+      - e-course-network
 
   frontend:
     build: ./frontend
@@ -30,6 +39,11 @@ services:
       - "3000:3000"
     depends_on:
       - backend
+    networks:
+      - e-course-network
+
+networks:
+  e-course-network:
 
 volumes:
   mysql_data:

@@ -8,7 +8,6 @@ import (
 	"be_online_course/handler"
 	"be_online_course/helper"
 	"be_online_course/lesson"
-	"be_online_course/migrations"
 	"be_online_course/payment"
 	"be_online_course/transaction"
 	"be_online_course/user"
@@ -38,13 +37,12 @@ func main() {
 			return time.Now().Local()
 		},
 	}
-	dsn := fmt.Sprintf("%s:%s@tcp(mysql:3306)/%s?charset=utf8mb4&parseTime=True&loc=Local",
-		"root", "", "be-e-course") // Sesuaikan password root jika Anda menyetelnya
-
-	db, err := gorm.Open(mysql.Open(dsn), GormConfig) // GormConfig adalah optional
+	dsn := "root:@tcp(db:3307)/be-e-course?charset=utf8mb4&parseTime=True&loc=Local"
+	db, err := gorm.Open(mysql.Open(dsn), GormConfig)
 	if err != nil {
 		log.Fatal(err.Error())
 	}
+	fmt.Println("Database connected successfully")
 	fmt.Println("Database connected successfully")
 
 	userRepository := user.NewRepository(db)
@@ -64,9 +62,9 @@ func main() {
 	transactionService := transaction.NewService(transactionRepository, courseRepository, paymentServlice)
 
 	// Uncomment the line below to perform database migrations
-	if err := migrations.Migrate(db); err != nil {
-		log.Fatal(err)
-	}
+	// if err := migrations.Migrate(db); err != nil {
+	// 	log.Fatal(err)
+	// }
 	userHandler := handler.NewUserHandler(userService, authService)
 	categoryHandler := handler.NewCategoryHandler(categoryService)
 	courseHandler := handler.NewCourseHandler(courseService)
