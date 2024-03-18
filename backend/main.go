@@ -27,6 +27,7 @@ import (
 )
 
 func main() {
+	// must godot	env.load first
 	if err := godotenv.Load(); err != nil {
 		log.Fatal("Error loading .env file")
 	}
