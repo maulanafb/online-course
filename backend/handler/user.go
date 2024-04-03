@@ -4,17 +4,19 @@ import (
 	"be_online_course/auth"
 	"be_online_course/helper"
 	"be_online_course/user"
-	"encoding/json"
+	"context"
 	"fmt"
 	"net/http"
 	"os"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/golang-jwt/jwt"
+	"golang.org/x/oauth2"
+
 	"github.com/joho/godotenv"
 
-	"golang.org/x/oauth2"
-	"golang.org/x/oauth2/google"
+	"google.golang.org/api/idtoken"
 )
 
 type UserHandler struct {
@@ -174,72 +176,111 @@ func (h *UserHandler) FetchUser(c *fiber.Ctx) error {
 	return response
 }
 
-func (h *UserHandler) GoogleLogin(c *fiber.Ctx) error {
-	url := googleOauthClient.AuthCodeURL("state")
-
-	return c.Redirect(url, http.StatusTemporaryRedirect)
-}
-
-// Handle Google OAuth callback
 func (h *UserHandler) GoogleCallback(c *fiber.Ctx) error {
-	code := c.Query("code")
+	tokenID := c.Query("tokenId")
+	if tokenID == "" {
+		return c.Status(http.StatusBadRequest).JSON(fiber.Map{"error": "Missing tokenId"})
+	}
 
-	token, err := googleOauthClient.Exchange(oauth2.NoContext, code)
+	// Konfigurasi untuk verifikasi token Google
+	tokenValidator, err := idtoken.NewValidator(context.Background())
 	if err != nil {
-		return err
+		return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
 	}
 
-	client := googleOauthClient.Client(oauth2.NoContext, token)
-	userInfoResp, err := client.Get("https://www.googleapis.com/oauth2/v3/userinfo")
+	const googleClientID = "555809304379-gqicb9q9fcc9iererv73cmpeuo0jp7p3.apps.googleusercontent.com" // Ganti dengan Google Client ID Anda
+	payload, err := tokenValidator.Validate(context.Background(), tokenID, googleClientID)
 	if err != nil {
-		return err
+		return c.Status(http.StatusUnauthorized).JSON(fiber.Map{"error": "Invalid token"})
 	}
-	defer userInfoResp.Body.Close()
 
-	var userInfo struct {
-		Email         string `json:"email"`
-		Name          string `json:"name"`           // Full name
-		GivenName     string `json:"given_name"`     // Optional: First name
-		FamilyName    string `json:"family_name"`    // Optional: Last name
-		Picture       string `json:"picture"`        // Optional: Profile picture URL
-		EmailVerified bool   `json:"email_verified"` // Optional: Whether email is verified
-		Locale        string `json:"locale"`         // Optional: User's locale
-	}
-	if err := json.NewDecoder(userInfoResp.Body).Decode(&userInfo); err != nil {
-		return err
-	}
-	fmt.Println(userInfo)
-	// Find or create user in database
-	user, err := h.userService.FindOrCreateUserByEmail(userInfo.Email, userInfo.GivenName)
+	// Dapatkan informasi pengguna dari payload token
+	email := payload.Claims["email"].(string)
+	name := payload.Claims["name"].(string)
 
+	// Cek apakah email sudah ada di database
+	// var user user.User
+	_, err = h.userService.CheckingEmail(email)
+	newUser, err := h.userService.FindOrCreateUserByEmail(email, name) // Ganti user dengan newUser
 	if err != nil {
-		return err
+		return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Internal server error 1"})
 	}
-
-	// Generate JWT token
-	jwtToken, err := h.authService.GenerateToken(user.ID)
+	newUser, err = h.userService.GetUserByID(newUser.ID) // Menggunakan newUser.ID sebagai argumen
 	if err != nil {
-		return err
+		return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "Internal server error 2"})
 	}
-
-	// Redirect user to frontend with token
-	redirectURL := fmt.Sprintf("http://localhost:3000/auth?token=%s", jwtToken)
-	return c.Redirect(redirectURL, http.StatusTemporaryRedirect)
+	fmt.Println(newUser)
+	// Jika autentikasi dengan Google berhasil, hasilkan token JWT
+	tokenString, err := h.authService.GenerateToken(newUser.ID)
+	return c.Status(http.StatusOK).JSON(fiber.Map{"token": tokenString})
 }
+
+func generateJWTToken(userID int) string {
+	// Konfigurasi untuk menghasilkan token JWT
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
+		"user_id": userID,
+		"exp":     time.Now().Add(time.Hour * 24).Unix(), // Token berlaku selama 24 jam
+	})
+
+	// Tanda tangan token dengan kunci rahasia
+	tokenString, _ := token.SignedString([]byte(os.Getenv("JWT_SECRET")))
+
+	return tokenString
+}
+
+// func (h *UserHandler) GoogleLogin(c *fiber.Ctx) error {
+// 	url := googleOauthClient.AuthCodeURL("state")
+
+// 	return c.Redirect(url, http.StatusTemporaryRedirect)
+// }
+
+// // Handle Google OAuth callback
+// func (h *UserHandler) GoogleCallback(c *fiber.Ctx) error {
+// 	code := c.Query("code")
+
+// 	token, err := googleOauthClient.Exchange(oauth2.NoContext, code)
+// 	if err != nil {
+// 		return err
+// 	}
+
+// 	client := googleOauthClient.Client(oauth2.NoContext, token)
+// 	userInfoResp, err := client.Get("https://www.googleapis.com/oauth2/v3/userinfo")
+// 	if err != nil {
+// 		return err
+// 	}
+// 	defer userInfoResp.Body.Close()
+
+// 	var userInfo struct {
+// 		Email         string `json:"email"`
+// 		Name          string `json:"name"`           // Full name
+// 		GivenName     string `json:"given_name"`     // Optional: First name
+// 		FamilyName    string `json:"family_name"`    // Optional: Last name
+// 		Picture       string `json:"picture"`        // Optional: Profile picture URL
+// 		EmailVerified bool   `json:"email_verified"` // Optional: Whether email is verified
+// 		Locale        string `json:"locale"`         // Optional: User's locale
+// 	}
+// 	if err := json.NewDecoder(userInfoResp.Body).Decode(&userInfo); err != nil {
+// 		return err
+// 	}
+// 	fmt.Println(userInfo)
+// 	// Find or create user in database
+// 	user, err := h.userService.FindOrCreateUserByEmail(userInfo.Email, userInfo.GivenName)
+
+// 	if err != nil {
+// 		return err
+// 	}
+
+// 	// Generate JWT token
+// 	jwtToken, err := h.authService.GenerateToken(user.ID)
+// 	if err != nil {
+// 		return err
+// 	}
+
+// 	// Redirect user to frontend with token
+// 	redirectURL := fmt.Sprintf("http://localhost:3000/auth?token=%s", jwtToken)
+// 	return c.Redirect(redirectURL, http.StatusTemporaryRedirect)
+// }
 
 func init() {
 	godotenv.Load()
-	googleOAuthConfig = GoogleOAuthConfig{
-		ClientID:     os.Getenv("GOOGLE_CLIENT_ID"),
-		ClientSecret: os.Getenv("GOOGLE_CLIENT_SECRET"),
-		RedirectURL:  "http://localhost:8088/api/v1/google-callback",
-	}
-
-	googleOauthClient = &oauth2.Config{
-		ClientID:     googleOAuthConfig.ClientID,
-		ClientSecret: googleOAuthConfig.ClientSecret,
-		RedirectURL:  googleOAuthConfig.RedirectURL,
-		Scopes:       []string{"https://www.googleapis.com/auth/userinfo.email", "https://www.googleapis.com/auth/userinfo.profile"},
-		Endpoint:     google.Endpoint,
-	}
 }

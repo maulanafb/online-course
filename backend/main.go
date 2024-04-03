@@ -38,7 +38,7 @@ func main() {
 			return time.Now().Local()
 		},
 	}
-	dsn := "root:@tcp(db:3307)/be-e-course?charset=utf8mb4&parseTime=True&loc=Local"
+	dsn := "root:@tcp(localhost:3306)/be-e-course?charset=utf8mb4&parseTime=True&loc=Local"
 	db, err := gorm.Open(mysql.Open(dsn), GormConfig)
 	if err != nil {
 		log.Fatal(err.Error())
@@ -85,8 +85,7 @@ func main() {
 
 	api := app.Group("/api/v1")
 	api.Post("/users", userHandler.RegisterUser)
-	api.Get("/google-login", userHandler.GoogleLogin)
-	api.Get("/google-callback", userHandler.GoogleCallback)
+	api.Get("/auth/google/callback", userHandler.GoogleCallback)
 	api.Post("/sessions", userHandler.Login)
 	api.Get("/users/fetch", authMiddleware(authService, userService), userHandler.FetchUser)
 
@@ -127,25 +126,25 @@ func authMiddleware(authService auth.Service, userService user.Service) fiber.Ha
 		if len(arrayToken) == 2 {
 			tokenString = arrayToken[1]
 		}
+		fmt.Println(tokenString)
 		token, err := authService.ValidateToken(tokenString)
 		if err != nil {
-			response := helper.APIResponse("Unauthorized", http.StatusUnauthorized, "error", nil)
+			response := helper.APIResponse("Unauthorized1", http.StatusUnauthorized, "error", nil)
 			return c.Status(http.StatusUnauthorized).JSON(response)
 		}
 
 		claim, ok := token.Claims.(jwt.MapClaims)
 		if !ok || !token.Valid {
-			response := helper.APIResponse("Unauthorized", http.StatusUnauthorized, "error", nil)
+			response := helper.APIResponse("Unauthorized2", http.StatusUnauthorized, "error", nil)
 			return c.Status(http.StatusUnauthorized).JSON(response)
 		}
 
 		userID := int(claim["user_id"].(float64))
 		user, err := userService.GetUserByID(userID)
 		if err != nil {
-			response := helper.APIResponse("Unauthorized", http.StatusUnauthorized, "error", nil)
+			response := helper.APIResponse("Unauthorized3", http.StatusUnauthorized, "error", nil)
 			return c.Status(http.StatusUnauthorized).JSON(response)
 		}
-
 		// Set the user in the context
 		c.Locals("currentUser", user)
 		return c.Next()

@@ -1,12 +1,8 @@
 {
-  "/page": "app/page.js",
   "/auth/page": "app/auth/page.js",
-  "/(course)/course-detail/[slug]/page": "app/(course)/course-detail/[slug]/page.js",
-  "/(course)/courses/page": "app/(course)/courses/page.js",
+  "/page": "app/page.js",
   "/(dashboard)/my-courses/page": "app/(dashboard)/my-courses/page.js",
-  "/(dashboard)/my-courses/[slug]/[lesson]/page": "app/(dashboard)/my-courses/[slug]/[lesson]/page.js",
-  "/(dashboard)/my-transactions/page": "app/(dashboard)/my-transactions/page.js",
-  "/(dashboard)/settings/page": "app/(dashboard)/settings/page.js",
   "/(course)/checkout/[slug]/page": "app/(course)/checkout/[slug]/page.js",
-  "/favicon.ico/route": "app/favicon.ico/route.js"
+  "/(dashboard)/my-courses/[slug]/[lesson]/page": "app/(dashboard)/my-courses/[slug]/[lesson]/page.js",
+  "/(course)/courses/page": "app/(course)/courses/page.js"
 }
